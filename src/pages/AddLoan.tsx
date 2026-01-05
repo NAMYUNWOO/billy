@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@toss/tds-mobile';
 import { createLoan } from '../lib/db';
 import { compressImages, getImageSizeKB } from '../lib/imageUtils';
 
@@ -210,23 +211,17 @@ export default function AddLoan() {
       </div>
 
       <div className="bottom-button">
-        <button
-          style={{
-            width: '100%',
-            padding: 16,
-            fontSize: 16,
-            fontWeight: 600,
-            background: saving || !borrowerName.trim() || !amount ? '#D1D6DB' : '#3182F6',
-            color: 'white',
-            border: 'none',
-            borderRadius: 12,
-            cursor: saving || !borrowerName.trim() || !amount ? 'not-allowed' : 'pointer'
-          }}
+        <Button
+          variant="fill"
+          color="primary"
+          size="large"
+          display="full"
           onClick={handleSubmit}
           disabled={saving || !borrowerName.trim() || !amount}
+          loading={saving}
         >
-          {saving ? '저장 중...' : '저장하기'}
-        </button>
+          저장하기
+        </Button>
       </div>
     </div>
   );

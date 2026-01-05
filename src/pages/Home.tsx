@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import { Button } from '@toss/tds-mobile';
+import { Button } from '@toss/tds-mobile';
 import type { Loan } from '../types/loan';
 import { getAllLoans, getTotalLentAmount } from '../lib/db';
 import LoanCard from '../components/LoanCard';
@@ -71,22 +71,11 @@ export default function Home() {
             <div className="empty-state">
               <p>아직 기록이 없어요</p>
               <p className="empty-sub">돈을 빌려줬다면 기록해보세요</p>
-              <button
-                onClick={() => navigate('/add')}
-                style={{
-                  marginTop: 24,
-                  padding: '14px 32px',
-                  fontSize: 16,
-                  fontWeight: 600,
-                  background: '#3182F6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 12,
-                  cursor: 'pointer',
-                }}
-              >
-                + 기록하기
-              </button>
+              <div style={{ marginTop: 24 }}>
+                <Button variant="fill" color="primary" size="large" onClick={() => navigate('/add')}>
+                  + 기록하기
+                </Button>
+              </div>
             </div>
           ) : (
             <>
@@ -125,22 +114,9 @@ export default function Home() {
       {/* 추가 버튼 - 기록이 있을 때만 표시 */}
       {loans.length > 0 && (
         <div className="fab-container">
-          <button
-            style={{
-              width: '100%',
-              padding: 16,
-              fontSize: 16,
-              fontWeight: 600,
-              background: '#3182F6',
-              color: 'white',
-              border: 'none',
-              borderRadius: 12,
-              cursor: 'pointer'
-            }}
-            onClick={() => navigate('/add')}
-          >
+          <Button variant="fill" color="primary" size="large" display="full" onClick={() => navigate('/add')}>
             + 기록하기
-          </button>
+          </Button>
         </div>
       )}
     </div>

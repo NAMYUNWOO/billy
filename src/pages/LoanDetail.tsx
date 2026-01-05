@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Button, ConfirmDialog } from '@toss/tds-mobile';
 import type { Loan } from '../types/loan';
 import { getLoan, markAsPaidBack, deleteLoan } from '../lib/db';
 import { shareLoanPDF } from '../lib/pdfGenerator';
@@ -157,16 +158,6 @@ export default function LoanDetail() {
 
   const daysSince = getDaysSince(loan.loanDate);
 
-  const buttonStyle = {
-    flex: 1,
-    padding: 16,
-    fontSize: 16,
-    fontWeight: 600 as const,
-    border: 'none',
-    borderRadius: 12,
-    cursor: 'pointer' as const,
-  };
-
   return (
     <div className="page">
       <header className="app-header">
@@ -250,168 +241,34 @@ export default function LoanDetail() {
       {/* 하단 버튼 */}
       {!loan.isPaidBack && (
         <div className="bottom-buttons">
-          <button
-            style={{
-              ...buttonStyle,
-              background: '#F4F5F7',
-              color: '#333D4B',
-            }}
-            onClick={handleSendReminder}
-          >
+          <Button variant="weak" color="dark" size="large" onClick={handleSendReminder}>
             독촉하기
-          </button>
-          <button
-            style={{
-              ...buttonStyle,
-              background: '#3182F6',
-              color: 'white',
-            }}
-            onClick={() => setShowPaidBackDialog(true)}
-          >
+          </Button>
+          <Button variant="fill" color="primary" size="large" onClick={() => setShowPaidBackDialog(true)}>
             받았어요
-          </button>
+          </Button>
         </div>
       )}
 
       {/* 삭제 확인 다이얼로그 */}
-      {showDeleteDialog && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: 20,
-          }}
-          onClick={() => setShowDeleteDialog(false)}
-        >
-          <div
-            style={{
-              background: 'white',
-              borderRadius: 16,
-              padding: 24,
-              width: '100%',
-              maxWidth: 320,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>기록 삭제</h2>
-            <p style={{ fontSize: 14, color: '#6B7684', marginBottom: 24 }}>
-              이 기록을 삭제할까요? 삭제하면 되돌릴 수 없어요.
-            </p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button
-                style={{
-                  flex: 1,
-                  padding: 14,
-                  fontSize: 16,
-                  fontWeight: 600,
-                  background: '#F4F5F7',
-                  color: '#333D4B',
-                  border: 'none',
-                  borderRadius: 12,
-                  cursor: 'pointer',
-                }}
-                onClick={() => setShowDeleteDialog(false)}
-              >
-                취소
-              </button>
-              <button
-                style={{
-                  flex: 1,
-                  padding: 14,
-                  fontSize: 16,
-                  fontWeight: 600,
-                  background: '#F04452',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 12,
-                  cursor: 'pointer',
-                }}
-                onClick={handleDelete}
-              >
-                삭제
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        title={<ConfirmDialog.Title>기록 삭제</ConfirmDialog.Title>}
+        description={<ConfirmDialog.Description>이 기록을 삭제할까요? 삭제하면 되돌릴 수 없어요.</ConfirmDialog.Description>}
+        cancelButton={<ConfirmDialog.CancelButton onClick={() => setShowDeleteDialog(false)}>취소</ConfirmDialog.CancelButton>}
+        confirmButton={<ConfirmDialog.ConfirmButton color="danger" onClick={handleDelete}>삭제</ConfirmDialog.ConfirmButton>}
+      />
 
       {/* 상환 확인 다이얼로그 */}
-      {showPaidBackDialog && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: 20,
-          }}
-          onClick={() => setShowPaidBackDialog(false)}
-        >
-          <div
-            style={{
-              background: 'white',
-              borderRadius: 16,
-              padding: 24,
-              width: '100%',
-              maxWidth: 320,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>상환 완료</h2>
-            <p style={{ fontSize: 14, color: '#6B7684', marginBottom: 24 }}>
-              {loan.borrowerName}님에게 {formatAmount(loan.amount)}원을 받으셨나요?
-            </p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button
-                style={{
-                  flex: 1,
-                  padding: 14,
-                  fontSize: 16,
-                  fontWeight: 600,
-                  background: '#F4F5F7',
-                  color: '#333D4B',
-                  border: 'none',
-                  borderRadius: 12,
-                  cursor: 'pointer',
-                }}
-                onClick={() => setShowPaidBackDialog(false)}
-              >
-                아직이요
-              </button>
-              <button
-                style={{
-                  flex: 1,
-                  padding: 14,
-                  fontSize: 16,
-                  fontWeight: 600,
-                  background: '#3182F6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 12,
-                  cursor: 'pointer',
-                }}
-                onClick={handlePaidBack}
-              >
-                받았어요
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={showPaidBackDialog}
+        onClose={() => setShowPaidBackDialog(false)}
+        title={<ConfirmDialog.Title>상환 완료</ConfirmDialog.Title>}
+        description={<ConfirmDialog.Description>{loan.borrowerName}님에게 {formatAmount(loan.amount)}원을 받으셨나요?</ConfirmDialog.Description>}
+        cancelButton={<ConfirmDialog.CancelButton onClick={() => setShowPaidBackDialog(false)}>아직이요</ConfirmDialog.CancelButton>}
+        confirmButton={<ConfirmDialog.ConfirmButton onClick={handlePaidBack}>받았어요</ConfirmDialog.ConfirmButton>}
+      />
 
       {/* 사진 확대 보기 */}
       {selectedPhoto && (

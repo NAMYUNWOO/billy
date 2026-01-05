@@ -1,3 +1,5 @@
+import { Button } from '@toss/tds-mobile';
+
 interface OnboardingProps {
   onComplete: () => void;
 }
@@ -183,23 +185,11 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       </div>
 
       {/* 시작 버튼 */}
-      <button
-        onClick={handleStart}
-        style={{
-          width: '100%',
-          padding: 16,
-          fontSize: 16,
-          fontWeight: 600,
-          background: '#3182F6',
-          color: 'white',
-          border: 'none',
-          borderRadius: 12,
-          cursor: 'pointer',
-          marginTop: 24,
-        }}
-      >
-        시작하기
-      </button>
+      <div style={{ marginTop: 24 }}>
+        <Button variant="fill" color="primary" size="large" display="full" onClick={handleStart}>
+          시작하기
+        </Button>
+      </div>
     </div>
   );
 }
