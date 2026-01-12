@@ -4,8 +4,8 @@ import { graniteEvent, closeView } from '@apps-in-toss/web-framework';
 
 /**
  * apps-in-toss 공통 내비게이션 백버튼 이벤트 처리 훅
- * - 히스토리가 있으면 뒤로가기
- * - 최초 화면(/)에서는 앱 종료
+ * - 스킴 직접 진입(location.key === 'default')이면 앱 종료
+ * - 앱 내 네비게이션으로 이동한 경우 뒤로가기
  */
 export function useBackEvent() {
   const location = useLocation();
@@ -14,11 +14,11 @@ export function useBackEvent() {
   useEffect(() => {
     const cleanup = graniteEvent.addEventListener('backEvent', {
       onEvent: () => {
-        // 최초 화면(/)에서는 앱 종료
-        if (location.pathname === '/') {
+        // 스킴 직접 진입 시 location.key는 'default'
+        // 앱 내 네비게이션 시 location.key는 랜덤 문자열
+        if (location.key === 'default') {
           closeView();
         } else {
-          // 그 외에는 히스토리 백
           navigate(-1);
         }
       },
@@ -28,5 +28,5 @@ export function useBackEvent() {
     });
 
     return cleanup;
-  }, [location.pathname, navigate]);
+  }, [location.key, navigate]);
 }
