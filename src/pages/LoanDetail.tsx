@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button, ConfirmDialog } from '@toss/tds-mobile';
 import type { Loan } from '../types/loan';
 import { getLoan, markAsPaidBack, deleteLoan } from '../lib/db';
-import { shareLoanPDF } from '../lib/pdfGenerator';
+import { generateLoanPDF } from '../lib/pdfGenerator';
+import { saveBase64Data, share } from '@apps-in-toss/web-framework';
+import { useBackEvent } from '../hooks/useBackEvent';
 
 export default function LoanDetail() {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +16,11 @@ export default function LoanDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPaidBackDialog, setShowPaidBackDialog] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [showShareSuccessDialog, setShowShareSuccessDialog] = useState(false);
+
+  // 공통 내비게이션 백버튼 이벤트 처리
+  useBackEvent();
 
   useEffect(() => {
     if (id) {
@@ -41,7 +48,7 @@ export default function LoanDetail() {
       setShowPaidBackDialog(false);
     } catch (error) {
       console.error('Failed to mark as paid back:', error);
-      alert('처리에 실패했어요');
+      setAlertMessage('처리에 실패했어요');
     }
   };
 
@@ -53,26 +60,20 @@ export default function LoanDetail() {
       navigate('/', { replace: true });
     } catch (error) {
       console.error('Failed to delete loan:', error);
-      alert('삭제에 실패했어요');
+      setAlertMessage('삭제에 실패했어요');
     }
   };
 
-  const handleSendReminder = () => {
+  const handleSendReminder = async () => {
     if (!loan) return;
 
     const message = generateReminderMessage(loan);
 
-    // Web Share API 또는 SMS 링크 사용
-    if (navigator.share) {
-      navigator.share({
-        title: '빌리 - 독촉 메시지',
-        text: message,
-      }).catch(() => {
-        // 공유 취소시 무시
-      });
-    } else {
-      // SMS 링크로 fallback
-      window.location.href = `sms:?body=${encodeURIComponent(message)}`;
+    try {
+      // apps-in-toss 공유 기능 사용
+      await share({ message });
+    } catch (error) {
+      console.error('Failed to share reminder:', error);
     }
   };
 
@@ -107,18 +108,54 @@ export default function LoanDetail() {
     return Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
   };
 
+  const [isSavingPDF, setIsSavingPDF] = useState(false);
+
   const handleSharePDF = async () => {
-    if (!loan) return;
+    if (!loan || isSavingPDF) return;
+
+    setIsSavingPDF(true);
 
     try {
-      await shareLoanPDF(loan);
+      // PDF 생성
+      const pdfBlob = await generateLoanPDF(loan);
+
+      // 파일명 (시분초로 유니크하게)
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      const fileName = `빌리_${loan.borrowerName}_${h}${m}${s}.pdf`;
+
+      // Blob을 Base64로 변환
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (reader.result && typeof reader.result === 'string') {
+            // data:application/pdf;base64, 부분 제거
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+          } else {
+            reject(new Error('Failed to read file'));
+          }
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(pdfBlob);
+      });
+
+      // 기기에 PDF 저장
+      await saveBase64Data({
+        data: base64Data,
+        fileName,
+        mimeType: 'application/pdf',
+      });
+
+      // 저장 완료 다이얼로그 표시
+      setShowShareSuccessDialog(true);
     } catch (error) {
-      if (error instanceof Error && error.message.includes('공유')) {
-        alert(error.message);
-      } else {
-        console.error('PDF 생성 실패:', error);
-        alert('PDF 생성에 실패했어요');
-      }
+      console.error('PDF 저장 실패:', error);
+      setAlertMessage('PDF 저장에 실패했어요');
+    } finally {
+      setIsSavingPDF(false);
     }
   };
 
@@ -126,9 +163,6 @@ export default function LoanDetail() {
     return (
       <div className="page">
         <header className="app-header">
-          <button className="back-button" onClick={() => navigate(-1)}>
-            ←
-          </button>
           <h1>상세</h1>
         </header>
         <div className="content">
@@ -142,9 +176,6 @@ export default function LoanDetail() {
     return (
       <div className="page">
         <header className="app-header">
-          <button className="back-button" onClick={() => navigate(-1)}>
-            ←
-          </button>
           <h1>상세</h1>
         </header>
         <div className="content">
@@ -161,9 +192,6 @@ export default function LoanDetail() {
   return (
     <div className="page">
       <header className="app-header">
-        <button className="back-button" onClick={() => navigate(-1)}>
-          ←
-        </button>
         <h1>상세</h1>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="text-button" onClick={handleSharePDF}>
@@ -276,6 +304,24 @@ export default function LoanDetail() {
           <img src={selectedPhoto} alt="증거사진" />
         </div>
       )}
+
+      {/* TDS 알림 다이얼로그 */}
+      <ConfirmDialog
+        open={alertMessage !== null}
+        onClose={() => setAlertMessage(null)}
+        title={<ConfirmDialog.Title>알림</ConfirmDialog.Title>}
+        description={<ConfirmDialog.Description>{alertMessage}</ConfirmDialog.Description>}
+        confirmButton={<ConfirmDialog.ConfirmButton onClick={() => setAlertMessage(null)}>확인</ConfirmDialog.ConfirmButton>}
+      />
+
+      {/* PDF 저장 완료 다이얼로그 */}
+      <ConfirmDialog
+        open={showShareSuccessDialog}
+        onClose={() => setShowShareSuccessDialog(false)}
+        title={<ConfirmDialog.Title>저장 완료</ConfirmDialog.Title>}
+        description={<ConfirmDialog.Description>PDF가 기기에 저장되었어요.</ConfirmDialog.Description>}
+        confirmButton={<ConfirmDialog.ConfirmButton onClick={() => setShowShareSuccessDialog(false)}>확인</ConfirmDialog.ConfirmButton>}
+      />
     </div>
   );
 }

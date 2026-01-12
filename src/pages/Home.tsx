@@ -4,6 +4,7 @@ import { Button } from '@toss/tds-mobile';
 import type { Loan } from '../types/loan';
 import { getAllLoans, getTotalLentAmount } from '../lib/db';
 import LoanCard from '../components/LoanCard';
+import { useBackEvent } from '../hooks/useBackEvent';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -11,6 +12,9 @@ export default function Home() {
   const [totalAmount, setTotalAmount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 공통 내비게이션 백버튼 이벤트 처리
+  useBackEvent();
 
   useEffect(() => {
     loadData();
