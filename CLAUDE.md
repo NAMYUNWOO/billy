@@ -145,6 +145,51 @@ export default defineConfig({
 
 **Note:** TDS does not provide TextField/TextInput. Use plain HTML `<input>` elements.
 
+### 뒤로가기(backEvent) 이벤트 처리
+
+apps-in-toss WebView에서 공통 내비게이션 뒤로가기 버튼 이벤트를 처리하는 방법.
+
+#### 문제
+
+스킴(`intoss://앱이름/경로`)으로 특정 페이지에 직접 진입 시 뒤로가기 버튼이 무반응.
+
+#### 원인
+
+`window.history.length`는 WebView에서 신뢰할 수 없음. 토스 앱 WebView 자체 히스토리가 포함되어 스킴 직접 진입해도 1보다 클 수 있음.
+
+#### 해결
+
+React Router의 `location.key`로 스킴 직접 진입 여부 판단:
+- 스킴 직접 진입 시: `location.key === 'default'`
+- 앱 내 네비게이션 시: `location.key`는 랜덤 문자열
+
+```typescript
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { graniteEvent, closeView } from '@apps-in-toss/web-framework';
+
+export function useBackEvent() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const cleanup = graniteEvent.addEventListener('backEvent', {
+      onEvent: () => {
+        if (location.key === 'default') {
+          closeView();  // 스킴 직접 진입 → 앱 종료
+        } else {
+          navigate(-1); // 앱 내 이동 → 이전 페이지
+        }
+      },
+      onError: (error) => console.error('Back event error:', error),
+    });
+    return cleanup;
+  }, [location.key, navigate]);
+}
+```
+
+각 페이지 컴포넌트에서 `useBackEvent()` 훅 호출하여 사용.
+
 ### Known Issues
 - `html2canvas` causes "Unable to open URL: about:blank" error in WebView - use Canvas API directly instead
 
